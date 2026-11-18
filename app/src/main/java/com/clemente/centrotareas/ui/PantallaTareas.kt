@@ -54,7 +54,7 @@ fun PantallaTareas(viewModel: TareasViewModel) {
     var hasta by rememberSaveable { mutableStateOf("10000000") }
     val limite = hasta.toIntOrNull()
     val entradaValida = limite != null && limite >= 2
-    val calculando = primos == PrimosUi.Calculando
+    val calculando = primos is PrimosUi.Calculando
     var toques by rememberSaveable { mutableIntStateOf(0) }
 
     Scaffold(
@@ -117,7 +117,13 @@ fun PantallaTareas(viewModel: TareasViewModel) {
                 }
                 when (val estado = primos) {
                     PrimosUi.Inicial -> Text("Ingresa un límite para contar los números primos.")
-                    PrimosUi.Calculando -> Text("Calculando...")
+                    is PrimosUi.Calculando -> {
+                        LinearProgressIndicator(
+                            progress = { estado.porcentaje / 100f },
+                            modifier = Modifier.fillMaxWidth().testTag("progresoPrimos")
+                        )
+                        Text("Calculando... ${estado.porcentaje} %")
+                    }
                     PrimosUi.Cancelado -> Text("Cálculo cancelado")
                     is PrimosUi.Listo -> RecuadroResultado(
                         "${estado.cantidad} primos · ${estado.milisegundos} ms"

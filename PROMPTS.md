@@ -25,3 +25,16 @@ queda pendiente validar con él esta diferencia de herramienta.
   mensajes de la Fase 1. No se captura ni se oculta la cancelación del flujo.
 - Se añaden pruebas de emisiones, nueva recolección y cancelación del productor,
   además de conservar las pruebas existentes de pantalla.
+
+### 2. Primos con progreso
+
+- Se aplica la segunda mejora de la propuesta generada para el mismo prompt;
+  no hubo otro prompt del usuario ni una respuesta de Gemini.
+- `contarPrimos()` emite `AvancePrimos` desde un Flow en Default, con cantidad
+  parcial y porcentaje, y comprueba la cancelación en cada candidato.
+- Se calcula el porcentaje con `Long` para evitar desbordamiento cuando N es
+  `Int.MAX_VALUE`. Solo se emite al cambiar el porcentaje (máximo 101 estados).
+- Se descarta añadir `delay` al cálculo: sigue siendo trabajo real de CPU.
+- El ViewModel publica el porcentaje en Main y relanza `CancellationException`;
+  Compose muestra la barra y el porcentaje. Se prueba exactitud, monotonía,
+  extremos pequeños, cancelación, doble inicio y reinicio.

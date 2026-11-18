@@ -1,7 +1,9 @@
 package com.clemente.centrotareas.data
 
 import android.util.Log
+import com.clemente.centrotareas.model.AvancePrimos
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
@@ -31,14 +33,22 @@ class TareasRepositoryLocal : TareasRepository {
         listOf("Pedido 101", "Pedido 102", "Pedido 103")
     }
 
-    override suspend fun contarPrimos(hasta: Int): Int = withContext(Dispatchers.Default) {
+    override fun contarPrimos(hasta: Int): Flow<AvancePrimos> = flow {
+        require(hasta >= 2) { "El límite debe ser al menos 2" }
         var cantidad = 0
+        var ultimoPorcentaje = 0
+        val total = hasta.toLong() - 1
+        emit(AvancePrimos(0, 0))
         for (n in 2..hasta) {
-            ensureActive()
+            currentCoroutineContext().ensureActive()
             if (esPrimo(n)) cantidad++
+            val porcentaje = (((n.toLong() - 1) * 100) / total).toInt()
+            if (porcentaje > ultimoPorcentaje) {
+                emit(AvancePrimos(porcentaje, cantidad))
+                ultimoPorcentaje = porcentaje
+            }
         }
-        cantidad
-    }
+    }.flowOn(Dispatchers.Default)
 
     private fun esPrimo(n: Int): Boolean {
         if (n < 2) return false

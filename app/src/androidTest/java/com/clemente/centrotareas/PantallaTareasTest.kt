@@ -106,7 +106,7 @@ class PantallaTareasTest {
         compose.onNodeWithText("Contar", substring = false).performScrollTo().performClick()
         compose.onNodeWithText("Tócame: 0").performScrollTo().performClick()
         compose.onNodeWithText("Tócame: 1").assertIsDisplayed()
-        assertEquals(PrimosUi.Calculando, viewModel.primos.value)
+        assertTrue(viewModel.primos.value is PrimosUi.Calculando)
         compose.onNodeWithTag("cancelarPrimos").performScrollTo().performClick()
         compose.waitUntil(3000) { viewModel.primos.value == PrimosUi.Cancelado }
         compose.onNodeWithText("Cálculo cancelado").performScrollTo().assertIsDisplayed()

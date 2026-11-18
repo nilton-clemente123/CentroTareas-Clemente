@@ -101,14 +101,16 @@ MainActivity ── compone la pantalla e inyecta Repository mediante Factory
                     ▲ implementa
                     │
                TareasRepositoryLocal
-               ├── contarPrimos: Default + ensureActive
+               ├── progresoTarea: Flow + flowOn(Default) + delay
+               ├── contarPrimos: Flow + flowOn(Default) + ensureActive
                └── cargas ficticias: IO + delay
 ```
 
 La View solo dibuja estados y comunica eventos; no lanza corrutinas.
 El ViewModel depende de la interfaz, no de su implementación ni de un Context.
 El Repository no conoce los estados de pantalla y expone funciones suspend
-seguras para llamarse desde el hilo principal. Los Jobs de progreso y primos
+y flujos seguros para llamarse o recolectarse desde el hilo principal. `AvancePrimos`
+es un dato de dominio, no un estado de pantalla. Los Jobs de progreso y primos
 son independientes; sus botones evitan iniciar dos trabajos del mismo tipo.
 
 ## Cinco evidencias de ejecución
@@ -257,3 +259,12 @@ actualiza el estado en Main y conserva la cancelación y el reinicio.
 La asistencia utilizada es Cline, no Gemini; se registra esta diferencia y el
 prompt real en `PROMPTS.md`. No se acredita el uso de Gemini solicitado por la
 guía. Se conserva MVVM + Repository, sin bibliotecas adicionales.
+
+### Primos con progreso
+
+`contarPrimos()` devuelve un `Flow<AvancePrimos>` con porcentaje y cantidad
+parcial. El Repository calcula en Default, comprueba `ensureActive()` por
+candidato y emite solamente cuando cambia el porcentaje, sin retrasos
+artificiales. El cálculo del porcentaje usa `Long` para no desbordarse con
+`Int.MAX_VALUE`. El ViewModel recolecta en Main y la pantalla muestra la barra
+y `Calculando... N %`. Se mantienen cancelación, reinicio y el resultado final.

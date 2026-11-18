@@ -1,9 +1,17 @@
 package com.clemente.centrotareas
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.clemente.centrotareas.data.TareasRepositoryLocal
+import com.clemente.centrotareas.model.AvancePrimos
+import com.clemente.centrotareas.model.PrimosUi
+import com.clemente.centrotareas.viewmodel.TareasViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.take
@@ -62,5 +70,46 @@ class MejoraIaTest {
         compose.waitUntil(3000) { trabajo.isCompleted }
         assertTrue(trabajo.isCancelled)
         assertTrue(valores.last() < 1f)
+    }
+
+    @Test
+    fun primosEmitePorcentajesMonotonosYResultadosExactos() {
+        for ((limite, esperado) in listOf(2 to 1, 3 to 2, 1000 to 168)) {
+            val valores = CopyOnWriteArrayList<AvancePrimos>()
+            lateinit var trabajo: Job
+            compose.runOnIdle {
+                trabajo = compose.activity.lifecycleScope.launch {
+                    TareasRepositoryLocal().contarPrimos(limite).collect { valores.add(it) }
+                }
+            }
+            compose.waitUntil(3000) { trabajo.isCompleted }
+            assertTrue(!trabajo.isCancelled)
+            assertEquals(AvancePrimos(0, 0), valores.first())
+            assertEquals(AvancePrimos(100, esperado), valores.last())
+            assertTrue(valores.size <= 101)
+            assertTrue(valores.zipWithNext().all { (antes, despues) ->
+                despues.porcentaje > antes.porcentaje && despues.cantidad >= antes.cantidad
+            })
+        }
+    }
+
+    @Test
+    fun primosMuestraAvanceEvitaDobleInicioYPermiteCancelarYReiniciar() {
+        val viewModel = ViewModelProvider(compose.activity)[TareasViewModel::class.java]
+        compose.runOnIdle { viewModel.contar(10000000) }
+        compose.waitUntil(5000) {
+            (viewModel.primos.value as? PrimosUi.Calculando)?.porcentaje in 1..99
+        }
+        compose.onNodeWithTag("progresoPrimos").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle {
+            viewModel.contar(1000)
+            assertTrue(viewModel.primos.value is PrimosUi.Calculando)
+            viewModel.cancelarPrimos()
+        }
+        compose.waitUntil(3000) { viewModel.primos.value == PrimosUi.Cancelado }
+        compose.onNodeWithText("Cálculo cancelado").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { viewModel.contar(1000) }
+        compose.waitUntil(3000) { viewModel.primos.value is PrimosUi.Listo }
+        assertEquals(168, (viewModel.primos.value as PrimosUi.Listo).cantidad)
     }
 }
