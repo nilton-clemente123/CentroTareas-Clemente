@@ -1,19 +1,31 @@
 package com.clemente.centrotareas.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.clemente.centrotareas.data.TareasRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     private val _mensaje = MutableStateFlow("Listo")
     val mensaje: StateFlow<String> = _mensaje.asStateFlow()
 
-    // Demostración temporal del Paso 1: deliberadamente bloquea el hilo principal.
-    fun tareaLargaMala() {
-        _mensaje.value = "Trabajando..."
-        Thread.sleep(4000)
-        _mensaje.value = "Terminó"
+    fun tareaLarga() {
+        viewModelScope.launch {
+            _mensaje.value = "Trabajando..."
+            Log.d("HILO", "Antes: ${Thread.currentThread().name}")
+            withContext(Dispatchers.Default) {
+                Log.d("HILO", "Dentro: ${Thread.currentThread().name}")
+                delay(4000)
+            }
+            Log.d("HILO", "Después: ${Thread.currentThread().name}")
+            _mensaje.value = "Terminó"
+        }
     }
 }
