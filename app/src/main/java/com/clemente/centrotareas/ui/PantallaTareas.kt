@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
@@ -31,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,8 +49,9 @@ fun PantallaTareas(viewModel: TareasViewModel) {
     val corriendo by viewModel.corriendo.collectAsState()
     val primos by viewModel.primos.collectAsState()
     val carga by viewModel.carga.collectAsState()
+    val simularError by viewModel.simularError.collectAsState()
     val cargando = carga == CargaUi.Cargando
-    var hasta by rememberSaveable { mutableStateOf("500000") }
+    var hasta by rememberSaveable { mutableStateOf("10000000") }
     val limite = hasta.toIntOrNull()
     val entradaValida = limite != null && limite >= 2
     val calculando = primos == PrimosUi.Calculando
@@ -122,6 +125,17 @@ fun PantallaTareas(viewModel: TareasViewModel) {
                 }
             }
             TarjetaTarea("Dos cargas") {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Simular error")
+                    Switch(
+                        checked = simularError,
+                        onCheckedChange = viewModel::cambiarSimularError,
+                        modifier = Modifier.testTag("simularError")
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = viewModel::cargarUnaPorUna, enabled = !cargando) {
                         Text("Una por una")
@@ -139,7 +153,20 @@ fun PantallaTareas(viewModel: TareasViewModel) {
                     is CargaUi.Exito -> RecuadroResultado(
                         "${estado.modo}\n${estado.perfil}\nPedidos: ${estado.pedidos}\n${estado.milisegundos} ms"
                     )
-                    is CargaUi.Error -> Text(estado.mensaje)
+                    is CargaUi.Error -> Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(estado.mensaje)
+                            Button(onClick = viewModel::cargarALaVez) { Text("Reintentar") }
+                        }
+                    }
                 }
             }
         }
