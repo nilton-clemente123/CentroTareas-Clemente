@@ -3,6 +3,7 @@ package com.clemente.centrotareas.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,11 +26,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.clemente.centrotareas.viewmodel.TareasViewModel
+import com.clemente.centrotareas.model.PrimosUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +43,11 @@ fun PantallaTareas(viewModel: TareasViewModel) {
     val mensaje by viewModel.mensaje.collectAsState()
     val progreso by viewModel.progreso.collectAsState()
     val corriendo by viewModel.corriendo.collectAsState()
+    val primos by viewModel.primos.collectAsState()
+    var hasta by rememberSaveable { mutableStateOf("500000") }
+    val limite = hasta.toIntOrNull()
+    val entradaValida = limite != null && limite >= 2
+    val calculando = primos == PrimosUi.Calculando
     var toques by rememberSaveable { mutableIntStateOf(0) }
 
     Scaffold(
@@ -57,19 +71,68 @@ fun PantallaTareas(viewModel: TareasViewModel) {
         ) {
             TarjetaTarea("Tarea con progreso") {
                 Button(onClick = { toques++ }) { Text("Tócame: $toques") }
-                Button(onClick = viewModel::tareaLarga, enabled = !corriendo) { Text("Iniciar") }
-                OutlinedButton(onClick = viewModel::cancelar, enabled = corriendo) { Text("Cancelar") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = viewModel::tareaLarga, enabled = !corriendo) { Text("Iniciar") }
+                    OutlinedButton(
+                        onClick = viewModel::cancelar,
+                        enabled = corriendo,
+                        modifier = Modifier.testTag("cancelarProgreso")
+                    ) { Text("Cancelar") }
+                }
                 LinearProgressIndicator(progress = { progreso }, modifier = Modifier.fillMaxWidth())
                 Text("${(progreso * 100).toInt()} %")
                 Text(mensaje)
             }
             TarjetaTarea("Contar números primos") {
-                Text("Cálculo de números primos en segundo plano.")
+                OutlinedTextField(
+                    value = hasta,
+                    onValueChange = { hasta = it },
+                    modifier = Modifier.fillMaxWidth().testTag("limitePrimos"),
+                    label = { Text("Hasta N") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = !calculando,
+                    isError = !entradaValida,
+                    supportingText = {
+                        if (!entradaValida) Text("Ingresa un entero entre 2 y 2147483647")
+                    }
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { limite?.let(viewModel::contar) },
+                        enabled = entradaValida && !calculando
+                    ) { Text("Contar") }
+                    OutlinedButton(
+                        onClick = viewModel::cancelarPrimos,
+                        enabled = calculando,
+                        modifier = Modifier.testTag("cancelarPrimos")
+                    ) { Text("Cancelar") }
+                }
+                when (val estado = primos) {
+                    PrimosUi.Inicial -> Text("Ingresa un límite para contar los números primos.")
+                    PrimosUi.Calculando -> Text("Calculando...")
+                    PrimosUi.Cancelado -> Text("Cálculo cancelado")
+                    is PrimosUi.Listo -> RecuadroResultado(
+                        "${estado.cantidad} primos · ${estado.milisegundos} ms"
+                    )
+                }
             }
             TarjetaTarea("Dos cargas") {
                 Text("Comparación de cargas secuenciales y paralelas.")
             }
         }
+    }
+}
+
+@Composable
+private fun RecuadroResultado(texto: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = Color(0xFFD9F2DF),
+        contentColor = Color(0xFF123C22)
+    ) {
+        Text(texto, modifier = Modifier.padding(12.dp))
     }
 }
 
