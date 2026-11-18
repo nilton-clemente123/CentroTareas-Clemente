@@ -50,6 +50,7 @@ fun PantallaTareas(viewModel: TareasViewModel) {
     val primos by viewModel.primos.collectAsState()
     val carga by viewModel.carga.collectAsState()
     val simularError by viewModel.simularError.collectAsState()
+    val comparaciones by viewModel.comparaciones.collectAsState()
     val cargando = carga == CargaUi.Cargando
     var hasta by rememberSaveable { mutableStateOf("10000000") }
     val limite = hasta.toIntOrNull()
@@ -174,6 +175,32 @@ fun PantallaTareas(viewModel: TareasViewModel) {
                         }
                     }
                 }
+                Text("Comparación de tiempos", style = MaterialTheme.typography.titleMedium)
+                Text("Una por una = secuencial · A la vez = concurrente")
+                if (comparaciones.isEmpty()) {
+                    Text("Ejecuta las cargas para acumular tiempos.")
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("N.º", modifier = Modifier.weight(0.5f))
+                        Text("Secuencial\n(ms)", modifier = Modifier.weight(1f))
+                        Text("Concurrente\n(ms)", modifier = Modifier.weight(1f))
+                        Text("Ahorro\n(ms)", modifier = Modifier.weight(1f))
+                    }
+                    comparaciones.forEach { fila ->
+                        val ahorro = if (fila.unaPorUna != null && fila.aLaVez != null) {
+                            "${fila.unaPorUna - fila.aLaVez}"
+                        } else "—"
+                        Row(
+                            modifier = Modifier.fillMaxWidth().testTag("comparacion-${fila.numero}")
+                        ) {
+                            Text("${fila.numero}", modifier = Modifier.weight(0.5f))
+                            Text(fila.unaPorUna?.toString() ?: "—", modifier = Modifier.weight(1f))
+                            Text(fila.aLaVez?.toString() ?: "—", modifier = Modifier.weight(1f))
+                            Text(ahorro, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+                Text("Tiempos de esta sesión; se conservan al rotar, no al cerrar la app.")
             }
         }
     }

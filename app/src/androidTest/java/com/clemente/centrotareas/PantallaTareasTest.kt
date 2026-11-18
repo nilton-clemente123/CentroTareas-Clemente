@@ -134,15 +134,24 @@ class PantallaTareasTest {
             compose.onNodeWithText("Pedidos: 3", substring = true).performScrollTo().assertIsDisplayed()
             capturar(if (modo == "Una por una") "04-secuencial" else "04-paralela")
         }
+        val comparacion = viewModel.comparaciones.value.single()
+        assertTrue(checkNotNull(comparacion.unaPorUna) > checkNotNull(comparacion.aLaVez))
+        compose.onNodeWithTag("comparacion-1").performScrollTo().assertIsDisplayed()
+        compose.activityRule.scenario.recreate()
+        assertEquals(listOf(comparacion), viewModel.comparaciones.value)
+        compose.onNodeWithText("Comparación de tiempos").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("comparacion-1").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun errorSimuladoEnAmbosModosPermiteReintentar() {
         val viewModel = ViewModelProvider(compose.activity)[TareasViewModel::class.java]
         for (modo in listOf("Una por una", "A la vez")) {
+            val antesDelError = viewModel.comparaciones.value
             compose.onNodeWithTag("simularError").performScrollTo().performClick()
             compose.onNodeWithText(modo, substring = false).performScrollTo().performClick()
             compose.waitUntil(8000) { viewModel.carga.value is CargaUi.Error }
+            assertEquals(antesDelError, viewModel.comparaciones.value)
             compose.onNodeWithText("No se pudo cargar: Sin conexión").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Reintentar").performScrollTo().assertIsDisplayed()
             if (modo == "Una por una") capturar("05-error")

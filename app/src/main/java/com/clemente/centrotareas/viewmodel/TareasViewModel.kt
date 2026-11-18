@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.clemente.centrotareas.data.TareasRepository
 import com.clemente.centrotareas.model.PrimosUi
 import com.clemente.centrotareas.model.CargaUi
+import com.clemente.centrotareas.model.ComparacionTiempos
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -30,6 +31,8 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     val carga: StateFlow<CargaUi> = _carga.asStateFlow()
     private val _simularError = MutableStateFlow(false)
     val simularError: StateFlow<Boolean> = _simularError.asStateFlow()
+    private val _comparaciones = MutableStateFlow<List<ComparacionTiempos>>(emptyList())
+    val comparaciones: StateFlow<List<ComparacionTiempos>> = _comparaciones.asStateFlow()
 
     fun tareaLarga() {
         if (_corriendo.value) return
@@ -84,13 +87,13 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         _carga.value = CargaUi.Cargando
         val errorSimulado = _simularError.value
         viewModelScope.launch {
-            val inicio = System.currentTimeMillis()
+            val inicio = System.nanoTime()
             try {
                 val perfil = repo.cargarPerfil()
                 val pedidos = repo.cargarPedidos(errorSimulado)
-                _carga.value = CargaUi.Exito(
-                    "Una por una", perfil, pedidos.size, System.currentTimeMillis() - inicio
-                )
+                registrarCarga(CargaUi.Exito(
+                    "Una por una", perfil, pedidos.size, (System.nanoTime() - inicio) / 1_000_000
+                ))
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _carga.value = CargaUi.Error("No se pudo cargar: ${e.message ?: "Error desconocido"}")
@@ -103,21 +106,40 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         _carga.value = CargaUi.Cargando
         val errorSimulado = _simularError.value
         viewModelScope.launch {
-            val inicio = System.currentTimeMillis()
+            val inicio = System.nanoTime()
             try {
                 val (perfil, pedidos) = coroutineScope {
                     val perfil = async { repo.cargarPerfil() }
                     val pedidos = async { repo.cargarPedidos(errorSimulado) }
                     perfil.await() to pedidos.await()
                 }
-                _carga.value = CargaUi.Exito(
-                    "A la vez", perfil, pedidos.size, System.currentTimeMillis() - inicio
-                )
+                registrarCarga(CargaUi.Exito(
+                    "A la vez", perfil, pedidos.size, (System.nanoTime() - inicio) / 1_000_000
+                ))
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _carga.value = CargaUi.Error("No se pudo cargar: ${e.message ?: "Error desconocido"}")
             }
         }
+    }
+
+    private fun registrarCarga(resultado: CargaUi.Exito) {
+        val secuencial = resultado.modo == "Una por una"
+        val filas = _comparaciones.value.toMutableList()
+        val pendiente = filas.indexOfFirst {
+            if (secuencial) it.unaPorUna == null else it.aLaVez == null
+        }
+        val indice = if (pendiente >= 0) pendiente else filas.size.also {
+            filas.add(ComparacionTiempos(numero = it + 1))
+        }
+        val fila = filas[indice]
+        filas[indice] = if (secuencial) {
+            fila.copy(unaPorUna = resultado.milisegundos)
+        } else {
+            fila.copy(aLaVez = resultado.milisegundos)
+        }
+        _comparaciones.value = filas.toList()
+        _carga.value = resultado
     }
 
     fun cambiarSimularError(valor: Boolean) {

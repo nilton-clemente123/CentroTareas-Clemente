@@ -38,3 +38,27 @@ queda pendiente validar con él esta diferencia de herramienta.
 - El ViewModel publica el porcentaje en Main y relanza `CancellationException`;
   Compose muestra la barra y el porcentaje. Se prueba exactitud, monotonía,
   extremos pequeños, cancelación, doble inicio y reinicio.
+
+### 3. Comparación acumulada de tiempos
+
+- Se aplica la tercera mejora propuesta para el prompt registrado; tampoco se
+  inventa un prompt adicional ni una intervención de Gemini.
+- El ViewModel conserva una lista de pares de tiempos en un StateFlow de solo
+  lectura. Cada éxito completa la primera fila pendiente de su modo o crea una
+  nueva. No se sobrescriben mediciones anteriores ni se registran errores.
+- Se utiliza `System.nanoTime()` para medir duraciones de cargas sin depender
+  de cambios en la hora del sistema. La UI muestra milisegundos y ahorro.
+- Se descarta DataStore: corresponde a otra mejora no seleccionada y requiere
+  una dependencia adicional. La tabla dura lo que el ViewModel y sobrevive a
+  recreaciones por configuración, pero no a la muerte del proceso.
+- Se añaden comprobaciones de acumulación, emparejamiento, ejecuciones
+  repetidas, errores, doble inicio y conservación tras recrear la Activity.
+
+## Resultado de validación
+
+El 18 de noviembre de 2026 se ejecutaron `assembleDebug`, `testDebugUnitTest`,
+`lintDebug` y la suite completa `connectedDebugAndroidTest`: compilación
+correcta, 1 prueba unitaria y 15 instrumentadas aprobadas, 0 errores de Lint
+y 13 advertencias. Se revisó el diff y la ausencia de APIs prohibidas en Kotlin.
+Las validaciones específicas de las dos primeras mejoras también aprobaron
+antes de crear sus respectivos commits.

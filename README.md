@@ -242,10 +242,10 @@ seguido de su push. La Fase 2 se agrega en `mejora-ia`, sin reescribir esos comm
 | 6 | 46436f8 | feat(primos): cuenta primos en Dispatchers.Default con cancelacion |
 | 7 | 4891784 | feat(carga): compara carga secuencial y en paralelo con async |
 | 8 | cc81874 | feat(errores): maneja errores de carga y agrega reintento |
-| 9 | Consultar git log | docs: agrega README con observaciones y capturas |
+| 9 | e272137 | docs: agrega README con observaciones y capturas |
 
-El hash del commit que contiene este README se consulta con `git log -1` para
-evitar una autorreferencia imposible de fijar dentro de su propio contenido.
+Estos nueve commits pertenecen a la Fase 1 y no se modifican al agregar la Fase 2.
+Para consultar solo los tres commits nuevos: `git log --oneline main..mejora-ia`.
 
 ## Fase 2 — rama `mejora-ia`
 
@@ -268,3 +268,31 @@ candidato y emite solamente cuando cambia el porcentaje, sin retrasos
 artificiales. El cálculo del porcentaje usa `Long` para no desbordarse con
 `Int.MAX_VALUE`. El ViewModel recolecta en Main y la pantalla muestra la barra
 y `Calculando... N %`. Se mantienen cancelación, reinicio y el resultado final.
+
+### Comparación acumulada de tiempos
+
+La tarjeta Dos cargas incluye una tabla con número de ensayo, tiempo secuencial,
+tiempo concurrente y ahorro (secuencial menos concurrente), en milisegundos.
+Cada éxito se agrega a la primera fila pendiente de su modalidad, o crea otra
+fila; `—` indica una medición pendiente. Los errores no alteran la tabla.
+Las duraciones de las cargas se miden con `System.nanoTime()` y los resultados
+se conservan en el ViewModel al recrear la Activity. No hay persistencia tras
+la muerte del proceso; no se seleccionó la mejora de historial con DataStore.
+
+### Entrega de la Fase 2
+
+- Tres mejoras y tres commits de implementación sobre `mejora-ia`.
+- Repository, ViewModel y View respetan sus responsabilidades.
+- `PROMPTS.md` documenta el prompt real, la propuesta, las decisiones y la
+  diferencia de herramienta respecto de Gemini.
+- `MejoraIaTest` agrega pruebas de las mejoras; `PantallaTareasTest` conserva
+  las de aceptación y verifica la tabla, los errores y la recreación.
+- Las capturas anteriores documentan la Fase 1; no se presentan como capturas
+  de las nuevas mejoras.
+
+Validación del 18 de noviembre de 2026: `assembleDebug`, `testDebugUnitTest`,
+`lintDebug` y `connectedDebugAndroidTest` terminaron correctamente. Pasaron
+1 prueba unitaria y las 15 instrumentadas (incluidas las 5 nuevas). Lint:
+0 errores y 13 advertencias. La comparación real en el emulador registró
+5010 ms secuenciales y 3001 ms concurrentes; hasta 10 000 000 se contaron
+664 579 primos. No aparecen APIs bloqueantes/prohibidas en el código Kotlin.

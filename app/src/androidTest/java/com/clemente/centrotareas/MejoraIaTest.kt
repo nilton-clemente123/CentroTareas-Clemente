@@ -6,13 +6,17 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.lifecycleScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.clemente.centrotareas.data.TareasRepositoryLocal
+import com.clemente.centrotareas.data.TareasRepository
 import com.clemente.centrotareas.model.AvancePrimos
 import com.clemente.centrotareas.model.PrimosUi
+import com.clemente.centrotareas.model.CargaUi
 import com.clemente.centrotareas.viewmodel.TareasViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -22,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CopyOnWriteArrayList
+import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class MejoraIaTest {
@@ -111,5 +116,64 @@ class MejoraIaTest {
         compose.runOnIdle { viewModel.contar(1000) }
         compose.waitUntil(3000) { viewModel.primos.value is PrimosUi.Listo }
         assertEquals(168, (viewModel.primos.value as PrimosUi.Listo).cantidad)
+    }
+
+    @Test
+    fun comparacionAcumulaEmparejaYNoRegistraErroresNiDobleInicio() {
+        val repo = object : TareasRepository by TareasRepositoryLocal() {
+            var perfiles = 0
+            var pedidos = 0
+
+            override suspend fun cargarPerfil(): String {
+                perfiles++
+                delay(20)
+                return "Perfil de prueba"
+            }
+
+            override suspend fun cargarPedidos(simularError: Boolean): List<String> {
+                pedidos++
+                delay(30)
+                if (simularError) throw IOException("Sin conexión")
+                return listOf("Pedido de prueba")
+            }
+        }
+        val store = ViewModelStore()
+        val viewModel = TareasViewModel(repo)
+        compose.runOnIdle { store.put("comparacion", viewModel) }
+        try {
+            assertTrue(viewModel.comparaciones.value.isEmpty())
+            for (secuencial in listOf(false, false, true, true)) {
+                compose.runOnIdle {
+                    if (secuencial) viewModel.cargarUnaPorUna() else viewModel.cargarALaVez()
+                    viewModel.cargarUnaPorUna()
+                    viewModel.cargarALaVez()
+                }
+                compose.waitUntil(3000) { viewModel.carga.value is CargaUi.Exito }
+            }
+            val filas = viewModel.comparaciones.value
+            assertEquals(listOf(1, 2), filas.map { it.numero })
+            assertTrue(filas.all { it.unaPorUna != null && it.aLaVez != null })
+            assertEquals(4, repo.perfiles)
+            assertEquals(4, repo.pedidos)
+
+            compose.runOnIdle {
+                viewModel.cambiarSimularError(true)
+                viewModel.cargarALaVez()
+            }
+            compose.waitUntil(3000) { viewModel.carga.value is CargaUi.Error }
+            assertEquals(filas, viewModel.comparaciones.value)
+
+            compose.runOnIdle {
+                viewModel.cambiarSimularError(false)
+                viewModel.cargarUnaPorUna()
+            }
+            compose.waitUntil(3000) { viewModel.carga.value is CargaUi.Exito }
+            val tercera = viewModel.comparaciones.value.last()
+            assertEquals(3, tercera.numero)
+            assertTrue(tercera.unaPorUna != null && tercera.aLaVez == null)
+            assertEquals(filas, viewModel.comparaciones.value.take(2))
+        } finally {
+            compose.runOnIdle { store.clear() }
+        }
     }
 }
