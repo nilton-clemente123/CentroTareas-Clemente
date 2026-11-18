@@ -7,16 +7,13 @@ import com.clemente.centrotareas.data.TareasRepository
 import com.clemente.centrotareas.model.PrimosUi
 import com.clemente.centrotareas.model.CargaUi
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     private val _mensaje = MutableStateFlow("Listo")
@@ -42,14 +39,8 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
                 _progreso.value = 0f
                 _mensaje.value = "Trabajando..."
                 Log.d("HILO", "Antes: ${Thread.currentThread().name}")
-                withContext(Dispatchers.Default) {
-                    Log.d("HILO", "Dentro: ${Thread.currentThread().name}")
-                    for (i in 1..100) {
-                        delay(40)
-                        withContext(Dispatchers.Main) {
-                            _progreso.value = i / 100f
-                        }
-                    }
+                repo.progresoTarea().collect { avance ->
+                    _progreso.value = avance
                 }
                 Log.d("HILO", "Después: ${Thread.currentThread().name}")
                 _mensaje.value = "Terminó"

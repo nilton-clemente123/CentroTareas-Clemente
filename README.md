@@ -1,6 +1,6 @@
 # CentroTareas
 
-Aplicación Android del laboratorio GLAB-S14-JLEONS-2026, Fase 1, con Kotlin,
+Aplicación Android del laboratorio GLAB-S14-JLEONS-2026 con Kotlin,
 Jetpack Compose, Material 3 y arquitectura MVVM + Repository.
 
 Demuestra cómo mantener la interfaz disponible mientras se ejecutan tareas
@@ -11,7 +11,8 @@ son ficticios; no se realizan peticiones de red ni se requieren permisos de inte
 El paquete `com.clemente.centrotareas` se utiliza por indicación del profesor.
 Se conserva el primer commit del alumno sin modificar su mensaje ni su historial.
 La estructura base que faltaba se incorpora junto con el Paso 1, por acuerdo con
-el alumno; no se importa otro proyecto ni se implementa la Fase 2.
+el alumno; no se importa otro proyecto. La Fase 1 permanece en `main` y las
+mejoras de la Fase 2 se implementan exclusivamente en `mejora-ia`.
 
 ## Observación del Paso 1
 
@@ -36,7 +37,8 @@ atendía un evento encolado durante la espera y que terminaba después de al men
 - Kotlin, Jetpack Compose y Material 3; sin layouts XML.
 - ViewModel, `viewModelScope`, `StateFlow` y corrutinas.
 - `Dispatchers.Default` para primos y la tarea de progreso; `Dispatchers.IO`
-  para las cargas simuladas. El progreso se publica explícitamente en `Main`.
+  para las cargas simuladas. En Fase 2, el Repository emite el progreso con
+  `Flow` y `flowOn(Default)`; el ViewModel lo recolecta y publica en `Main`.
 - MVVM con inyección manual de la interfaz Repository mediante una Factory.
 - Gradle Kotlin DSL, catálogo de versiones, Git y GitHub.
 - JUnit y pruebas instrumentadas de Compose.
@@ -222,11 +224,11 @@ otra carga paralela con el valor actual del interruptor.
 
 ## Control de versiones y alcance
 
-Solo Fase 1 en `main`: se conserva intacto el primer commit creado por el alumno,
+La Fase 1 queda en `main`: se conserva intacto el primer commit creado por el alumno,
 con su mensaje sin prefijo chore. La base faltante se incorporó al commit de
 congelamiento, según el acuerdo explícito de continuar sin rehacer el primero.
 Los commits restantes respetan el orden y los mensajes solicitados, cada uno
-seguido de su push. No se crearon ramas de Fase 2 ni archivos de prompts.
+seguido de su push. La Fase 2 se agrega en `mejora-ia`, sin reescribir esos commits.
 
 | N | Commit | Mensaje |
 | --- | --- | --- |
@@ -242,3 +244,16 @@ seguido de su push. No se crearon ramas de Fase 2 ni archivos de prompts.
 
 El hash del commit que contiene este README se consulta con `git log -1` para
 evitar una autorreferencia imposible de fijar dentro de su propio contenido.
+
+## Fase 2 — rama `mejora-ia`
+
+### Progreso desde Repository
+
+La tarea simulada ya no vive en el ViewModel: `progresoTarea()` devuelve un
+`Flow<Float>` con 101 emisiones (0 y 100 avances), producido con
+`flowOn(Dispatchers.Default)`. El ViewModel recolecta en `viewModelScope`,
+actualiza el estado en Main y conserva la cancelación y el reinicio.
+
+La asistencia utilizada es Cline, no Gemini; se registra esta diferencia y el
+prompt real en `PROMPTS.md`. No se acredita el uso de Gemini solicitado por la
+guía. Se conserva MVVM + Repository, sin bibliotecas adicionales.
