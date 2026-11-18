@@ -5,9 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.clemente.centrotareas.data.TareasRepository
 import com.clemente.centrotareas.model.PrimosUi
+import com.clemente.centrotareas.model.CargaUi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,8 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     private var trabajoPrimos: Job? = null
     private val _primos = MutableStateFlow<PrimosUi>(PrimosUi.Inicial)
     val primos: StateFlow<PrimosUi> = _primos.asStateFlow()
+    private val _carga = MutableStateFlow<CargaUi>(CargaUi.Inicial)
+    val carga: StateFlow<CargaUi> = _carga.asStateFlow()
 
     fun tareaLarga() {
         if (_corriendo.value) return
@@ -75,5 +80,34 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
 
     fun cancelarPrimos() {
         trabajoPrimos?.cancel()
+    }
+
+    fun cargarUnaPorUna() {
+        if (_carga.value == CargaUi.Cargando) return
+        _carga.value = CargaUi.Cargando
+        viewModelScope.launch {
+            val inicio = System.currentTimeMillis()
+            val perfil = repo.cargarPerfil()
+            val pedidos = repo.cargarPedidos(false)
+            _carga.value = CargaUi.Exito(
+                "Una por una", perfil, pedidos.size, System.currentTimeMillis() - inicio
+            )
+        }
+    }
+
+    fun cargarALaVez() {
+        if (_carga.value == CargaUi.Cargando) return
+        _carga.value = CargaUi.Cargando
+        viewModelScope.launch {
+            val inicio = System.currentTimeMillis()
+            val (perfil, pedidos) = coroutineScope {
+                val perfil = async { repo.cargarPerfil() }
+                val pedidos = async { repo.cargarPedidos(false) }
+                perfil.await() to pedidos.await()
+            }
+            _carga.value = CargaUi.Exito(
+                "A la vez", perfil, pedidos.size, System.currentTimeMillis() - inicio
+            )
+        }
     }
 }

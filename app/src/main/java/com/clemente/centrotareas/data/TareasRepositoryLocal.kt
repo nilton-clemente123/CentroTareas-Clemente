@@ -1,10 +1,23 @@
 package com.clemente.centrotareas.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 class TareasRepositoryLocal : TareasRepository {
+    override suspend fun cargarPerfil(): String = withContext(Dispatchers.IO) {
+        delay(2000)
+        "Ana Torres (ficticia)"
+    }
+
+    override suspend fun cargarPedidos(simularError: Boolean): List<String> = withContext(Dispatchers.IO) {
+        delay(3000)
+        if (simularError) throw IOException("Sin conexión")
+        listOf("Pedido 101", "Pedido 102", "Pedido 103")
+    }
+
     override suspend fun contarPrimos(hasta: Int): Int = withContext(Dispatchers.Default) {
         var cantidad = 0
         for (n in 2..hasta) {

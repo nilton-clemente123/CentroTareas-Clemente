@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.lifecycle.ViewModelProvider
 import com.clemente.centrotareas.viewmodel.TareasViewModel
 import com.clemente.centrotareas.model.PrimosUi
+import com.clemente.centrotareas.model.CargaUi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -102,5 +103,27 @@ class PantallaTareasTest {
         compose.waitUntil(3000) { viewModel.primos.value == PrimosUi.Cancelado }
         compose.onNodeWithText("Cálculo cancelado").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Contar", substring = false).assertIsEnabled()
+    }
+
+    @Test
+    fun comparaCargasSecuencialesYParalelasSinBloquear() {
+        val viewModel = ViewModelProvider(compose.activity)[TareasViewModel::class.java]
+        for ((modo, minimo, maximo) in listOf(
+            Triple("Una por una", 4900L, 8000L),
+            Triple("A la vez", 2900L, 5000L)
+        )) {
+            compose.onNodeWithText(modo, substring = false).performScrollTo().performClick()
+            compose.onNodeWithText("Una por una", substring = false).assertIsNotEnabled()
+            compose.onNodeWithText("A la vez", substring = false).assertIsNotEnabled()
+            compose.onNodeWithText("Tócame:", substring = true).performScrollTo().performClick()
+            compose.waitUntil(10000) { viewModel.carga.value is CargaUi.Exito }
+            val resultado = viewModel.carga.value as CargaUi.Exito
+            assertEquals(modo, resultado.modo)
+            assertEquals("Ana Torres (ficticia)", resultado.perfil)
+            assertEquals(3, resultado.pedidos)
+            assertTrue("Tiempo inesperado: ${resultado.milisegundos}", resultado.milisegundos in minimo..maximo)
+            android.util.Log.d("PRUEBA", "$modo: ${resultado.milisegundos} ms")
+            compose.onNodeWithText("Pedidos: 3", substring = true).performScrollTo().assertIsDisplayed()
+        }
     }
 }

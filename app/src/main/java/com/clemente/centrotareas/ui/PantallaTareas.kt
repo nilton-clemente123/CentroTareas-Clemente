@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.clemente.centrotareas.viewmodel.TareasViewModel
 import com.clemente.centrotareas.model.PrimosUi
+import com.clemente.centrotareas.model.CargaUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +46,8 @@ fun PantallaTareas(viewModel: TareasViewModel) {
     val progreso by viewModel.progreso.collectAsState()
     val corriendo by viewModel.corriendo.collectAsState()
     val primos by viewModel.primos.collectAsState()
+    val carga by viewModel.carga.collectAsState()
+    val cargando = carga == CargaUi.Cargando
     var hasta by rememberSaveable { mutableStateOf("500000") }
     val limite = hasta.toIntOrNull()
     val entradaValida = limite != null && limite >= 2
@@ -118,7 +122,25 @@ fun PantallaTareas(viewModel: TareasViewModel) {
                 }
             }
             TarjetaTarea("Dos cargas") {
-                Text("Comparación de cargas secuenciales y paralelas.")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = viewModel::cargarUnaPorUna, enabled = !cargando) {
+                        Text("Una por una")
+                    }
+                    Button(onClick = viewModel::cargarALaVez, enabled = !cargando) {
+                        Text("A la vez")
+                    }
+                }
+                when (val estado = carga) {
+                    CargaUi.Inicial -> Text("Perfil: 2 s · Pedidos: 3 s")
+                    CargaUi.Cargando -> {
+                        CircularProgressIndicator()
+                        Text("Cargando...")
+                    }
+                    is CargaUi.Exito -> RecuadroResultado(
+                        "${estado.modo}\n${estado.perfil}\nPedidos: ${estado.pedidos}\n${estado.milisegundos} ms"
+                    )
+                    is CargaUi.Error -> Text(estado.mensaje)
+                }
             }
         }
     }
