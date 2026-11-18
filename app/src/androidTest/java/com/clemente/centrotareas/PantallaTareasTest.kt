@@ -29,7 +29,8 @@ class PantallaTareasTest {
     @Test
     fun tareaLargaNoBloqueaLosToques() {
         val antes = SystemClock.elapsedRealtime()
-        compose.onNodeWithText("Tarea larga").performClick()
+        compose.onNodeWithText("0 %").assertIsDisplayed()
+        compose.onNodeWithText("Iniciar").performClick()
         compose.onNodeWithText("Trabajando...").assertIsDisplayed()
         compose.onNodeWithText("Tócame: 0").performClick()
         compose.onNodeWithText("Tócame: 1").assertIsDisplayed()
@@ -38,6 +39,7 @@ class PantallaTareasTest {
             compose.onAllNodes(androidx.compose.ui.test.hasText("Terminó")).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("Terminó").assertIsDisplayed()
+        compose.onNodeWithText("100 %").assertIsDisplayed()
         assertTrue(SystemClock.elapsedRealtime() - antes >= 4000)
     }
 }
